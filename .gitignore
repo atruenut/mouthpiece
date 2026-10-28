@@ -1,0 +1,9 @@
+# build output
+*.exe
+*.o
+res/*.o
+tests/run_*
+# editor / OS
+*~
+.vs/
+Thumbs.db
