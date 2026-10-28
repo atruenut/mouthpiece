@@ -1,5 +1,5 @@
 # build output
-*.exe
+/*.exe
 *.o
 res/*.o
 tests/run_*
