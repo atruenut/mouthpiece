@@ -1,0 +1,5 @@
+#define RC_DESC "Mouthpiece command line (text to speech)"
+#define RC_INTERNAL "MouthpieceCLI"
+#define RC_ORIGINAL "MouthpieceCLI.exe"
+#include "version.rc"
+1 24 "res/tool.manifest"

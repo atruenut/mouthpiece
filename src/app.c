@@ -2793,25 +2793,24 @@ static void build_menu(HWND hwnd)
     SetMenu(hwnd, bar);
 }
 
-/* Home/End in the editor: jump to the start/end of the DOCUMENT instead of the line.
- * The edit control already does exactly that for Ctrl+Home/Ctrl+End (including Shift
- * to extend the selection), so we simply present the key as Ctrl+Home/Ctrl+End. */
+/* Home/End in the editor: jump to the start/end of the DOCUMENT instead of the line (Shift extends the selection).
+ * Done with plain edit-control messages. With Shift and an existing selection the original anchor is not known, so
+ * Shift+Home selects from the start to the END of the current selection and Shift+End from its START to the end. */
 static LRESULT CALLBACK edit_subclass(HWND h, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR id, DWORD_PTR ref)
 {
     (void)id; (void)ref;
     if (msg == WM_KEYDOWN && (wp == VK_HOME || wp == VK_END) && g.home_end_doc &&
         !(GetKeyState(VK_CONTROL) & 0x8000) && !(GetKeyState(VK_MENU) & 0x8000)) {
-        BYTE ks[256];
-        if (GetKeyboardState(ks)) {
-            BYTE saved = ks[VK_CONTROL];
-            ks[VK_CONTROL] |= 0x80;
-            SetKeyboardState(ks);
-            LRESULT r = DefSubclassProc(h, msg, wp, lp);
-            ks[VK_CONTROL] = saved;
-            SetKeyboardState(ks);
-            if (g.state == ST_IDLE) update_position(caret_sentence());
-            return r;
-        }
+        DWORD ss = 0, se = 0;
+        SendMessageW(h, EM_GETSEL, (WPARAM)&ss, (LPARAM)&se);
+        int shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+        LONG len = GetWindowTextLengthW(h);
+        if (wp == VK_HOME) SendMessageW(h, EM_SETSEL, shift ? 0 : 0, shift ? (LPARAM)se : 0);
+        else SendMessageW(h, EM_SETSEL, shift ? (WPARAM)ss : (WPARAM)len, (LPARAM)len);
+        SendMessageW(h, EM_SCROLLCARET, 0, 0);
+        if (g.state == ST_IDLE) update_position(caret_sentence());
+        if (g.gutter) gutter_refresh(g.gutter);
+        return 0;
     }
     if (msg == WM_NCDESTROY) { RemoveWindowSubclass(h, edit_subclass, 1); return DefSubclassProc(h, msg, wp, lp); }
     LRESULT r = DefSubclassProc(h, msg, wp, lp);
@@ -3139,7 +3138,9 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE prev, PWSTR cmd, int show)
     wc.hCursor = LoadCursorW(NULL, (LPCWSTR)IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
     wc.lpszClassName = L"MouthpieceMain";
-    wc.hIcon = LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
+    wc.hIcon = LoadIconW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(2));
+    if (!wc.hIcon) wc.hIcon = LoadIconW(NULL, (LPCWSTR)IDI_APPLICATION);
+    wc.hIconSm = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(2), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), 0);
     if (!RegisterClassExW(&wc)) { CoUninitialize(); return 1; }
 
     HDC dc = GetDC(NULL);

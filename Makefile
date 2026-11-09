@@ -7,7 +7,8 @@ CROSS ?= x86_64-w64-mingw32-
 CC      = $(CROSS)gcc
 WINDRES = $(CROSS)windres
 CFLAGS  = -std=c11 -O2 -Wall -Wextra -Wno-unknown-pragmas -DUNICODE -D_UNICODE -DWINVER=0x0601 -D_WIN32_WINNT=0x0601
-LDFLAGS = -municode -mwindows -static -s
+HARDEN  = -Wl,--dynamicbase -Wl,--nxcompat
+LDFLAGS = -municode -mwindows -static -s $(HARDEN)
 LIBS    = -lsapi -lole32 -loleaut32 -luuid -lcomctl32 -lcomdlg32 -lgdi32 -luser32 -lshell32
 
 SRC = src/app.c src/tts_sapi.c src/util.c src/doc.c src/player.c src/preproc.c src/ui_cleanup.c src/ui_speech.c \
@@ -19,8 +20,14 @@ Mouthpiece.exe: $(SRC) src/tts_engine.h src/util.h src/doc.h src/player.h src/pr
   src/assemble.h src/gen.h src/ui_generate.h src/ini.h src/chapters.h src/ui_nav.h src/ui_gutter.h src/config.h src/tts_remote.h src/ui_about.h src/ui_about.h res/app.res.o
 	$(CC) $(CFLAGS) $(SRC) res/app.res.o -o $@ $(LDFLAGS) $(LIBS)
 
-res/app.res.o: res/app.rc res/app.manifest
-	$(WINDRES) -O coff res/app.rc $@
+res/app.res.o: res/app.rc res/app.manifest res/app.ico res/version.rc
+	$(WINDRES) -I res -O coff res/app.rc $@
+
+res/cli.res.o: res/cli.rc res/tool.manifest res/version.rc
+	$(WINDRES) -I res -O coff res/cli.rc $@
+
+res/host.res.o: res/host.rc res/tool.manifest res/version.rc
+	i686-w64-mingw32-windres -I res -O coff res/host.rc $@
 
 # Unit tests for the pure-C core (doc.c). Runs on the host compiler, no Windows needed.
 #   make test            (MinGW shell or Linux)
@@ -57,18 +64,18 @@ tests/run_project: tests/test_project.c src/ini.c src/chapters.c src/ir.c src/ha
 all: Mouthpiece.exe MouthpieceCLI.exe MouthpieceVoiceHost32.exe
 
 clean:
-	rm -f tests/run_caplooks Mouthpiece.exe MouthpieceCLI.exe MouthpieceVoiceHost32.exe res/app.res.o tests/run_doc tests/run_preproc tests/run_speech tests/run_cache tests/run_project tests/run_rx tests/run_pron2 tests/run_notes tests/run_find tests/run_analyze tests/run_profiles tests/run_marks tests/run_navmath tests/run_hotkeys tests/run_caplooks
+	rm -f tests/run_caplooks Mouthpiece.exe MouthpieceCLI.exe MouthpieceVoiceHost32.exe res/app.res.o res/cli.res.o res/host.res.o tests/run_doc tests/run_preproc tests/run_speech tests/run_cache tests/run_project tests/run_rx tests/run_pron2 tests/run_notes tests/run_find tests/run_analyze tests/run_profiles tests/run_marks tests/run_navmath tests/run_hotkeys tests/run_caplooks
 
 # Command line program: same engine as the GUI, console subsystem.
 CLI_SRC = src/rx.c src/pronscope.c src/analyze.c src/cli.c src/tts_sapi.c src/tts_remote.c src/util.c src/doc.c src/preproc.c src/pron.c src/speech.c src/utf8.c src/hash.c \
           src/wav.c src/plat.c src/cache.c src/ir.c src/assemble.c src/gen.c src/ini.c src/config.c src/chapters.c
-MouthpieceCLI.exe: $(CLI_SRC) src/*.h
-	$(CC) $(CFLAGS) $(CLI_SRC) -o $@ -municode -static -s $(LIBS) -lm
+MouthpieceCLI.exe: $(CLI_SRC) src/*.h res/cli.res.o
+	$(CC) $(CFLAGS) $(CLI_SRC) res/cli.res.o -o $@ -municode -static -s $(HARDEN) $(LIBS) -lm
 
 # 32-bit voice helper (always 32-bit, whatever CROSS is).
-MouthpieceVoiceHost32.exe: src/voicehost.c src/tts_sapi.c src/util.c src/*.h
+MouthpieceVoiceHost32.exe: src/voicehost.c src/tts_sapi.c src/util.c src/*.h res/host.res.o
 	i686-w64-mingw32-gcc -std=c11 -O2 -Wall -Wextra -DUNICODE -D_UNICODE -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 \
-	  src/voicehost.c src/tts_sapi.c src/util.c -o $@ -static -s -lsapi -lole32 -loleaut32 -luuid
+	  src/voicehost.c src/tts_sapi.c src/util.c res/host.res.o -o $@ -static -s -Wl,--dynamicbase -Wl,--nxcompat -lsapi -lole32 -loleaut32 -luuid
 
 tests/run_analyze: tests/test_analyze.c src/analyze.c src/pron.c src/rx.c src/utf8.c src/doc.c src/*.h
 	$(HOSTCC) -std=gnu11 -Wall -Wextra -g $(TEST_SAN) tests/test_analyze.c src/analyze.c src/pron.c src/rx.c src/utf8.c src/doc.c -o $@

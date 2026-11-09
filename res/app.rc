@@ -1,1 +1,6 @@
+#define RC_DESC "Mouthpiece text-to-speech workstation"
+#define RC_INTERNAL "Mouthpiece"
+#define RC_ORIGINAL "Mouthpiece.exe"
+#include "version.rc"
 1 24 "res/app.manifest"
+2 ICON "res/app.ico"

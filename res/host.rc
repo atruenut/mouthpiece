@@ -1,0 +1,5 @@
+#define RC_DESC "Mouthpiece 32-bit voice helper"
+#define RC_INTERNAL "MouthpieceVoiceHost32"
+#define RC_ORIGINAL "MouthpieceVoiceHost32.exe"
+#include "version.rc"
+1 24 "res/tool.manifest"

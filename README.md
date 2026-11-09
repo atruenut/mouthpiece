@@ -16,8 +16,8 @@ The window and the command line share one engine, so they behave the same.
 
 ## Download
 
-Get the latest build from [`dist/`](dist/): **[Mouthpiece-win64.zip](dist/Mouthpiece-win64.zip)** (the three programs below), or the
-`.exe` files individually. Unzip anywhere and run `Mouthpiece.exe`. No installer.
+Get the latest build from the **[Releases page](../../releases/latest)**: `Mouthpiece-win64.zip` holds the three programs below.
+Unzip anywhere and run `Mouthpiece.exe`. No installer. Each release lists SHA-256 checksums so you can check your download.
 
 | File | What it is |
 | --- | --- |
@@ -25,8 +25,15 @@ Get the latest build from [`dist/`](dist/): **[Mouthpiece-win64.zip](dist/Mouthp
 | `MouthpieceCLI.exe` | The command-line version, for batch jobs |
 | `MouthpieceVoiceHost32.exe` | Small helper that lets the 64-bit programs use **32-bit voices**. Keep it next to the others |
 
-Requires Windows 7 or later. The builds are unsigned, so Windows SmartScreen may ask you to confirm the first start
-("More info" > "Run anyway").
+Requires Windows 7 or later.
+
+**Windows and antivirus warnings.** The programs are not code-signed (a certificate costs money), and new unsigned programs are
+often flagged by SmartScreen ("More info" > "Run anyway") or by an antivirus' machine-learning guesses, whatever they actually do.
+Mouthpiece does not install anything, does not touch the registry, does not use any network connection, and does not log keys
+(its global shortcuts use Windows' ordinary `RegisterHotKey`). It only reads your text, talks to the speech voices, and writes into
+its own data folder. The source is all here, and you can build the exact same programs yourself (below) and compare. If your antivirus
+flags a download, please [open an issue](../../issues) with the name of the antivirus and the detection name, and report it as a false
+positive to the vendor (Microsoft: <https://www.microsoft.com/wdsi/filesubmission>).
 
 > **Honest status:** all of this was written and cross-compiled on Linux. The core logic has automated tests (below), but the
 > Windows interface (windows, menus, tray icon, global shortcuts, captions) has not yet been run by the author on every
@@ -112,7 +119,6 @@ types and is covered by about 700,000 automated checks. The Windows interface is
 src/     program source (pure-C core + ui_*.c Windows modules + app.c)
 tests/   unit tests for the pure-C core
 res/     resources and manifest
-dist/    prebuilt Windows binaries
 ```
 
 ## Known limits
@@ -125,4 +131,4 @@ dist/    prebuilt Windows binaries
 
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
