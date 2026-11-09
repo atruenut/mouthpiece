@@ -1,3 +1,5 @@
+<img src="res/screenshot.png" alt="Screenshot of the application running on Windows 11" width="50%" height="auto" align="center">
+
 # Mouthpiece
 
 A native Windows text-to-speech workstation for listening to long texts: books, papers, scanned documents, web pages.
