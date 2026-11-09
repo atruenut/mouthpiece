@@ -1,0 +1,54 @@
+name: Release
+
+# Pushing a tag such as v1.0.1 builds the Windows programs from that exact source on GitHub's own
+# machines, runs the tests, and publishes a release with the programs, their SHA-256 checksums and a
+# signed build-provenance attestation (so anyone can verify the files came from this repository).
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MinGW-w64
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mingw-w64 zip
+
+      - name: Unit tests
+        run: make test
+
+      - name: Build
+        run: |
+          make all
+          mkdir release
+          cp Mouthpiece.exe MouthpieceCLI.exe MouthpieceVoiceHost32.exe release/
+          (cd release && zip -q Mouthpiece-win64.zip Mouthpiece.exe MouthpieceCLI.exe MouthpieceVoiceHost32.exe && sha256sum *.exe *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt)
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'release/*'
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { cat .github/release-notes.md; echo; echo '### Check your download (SHA-256)'; echo '```'; cat release/SHA256SUMS.txt; echo '```'; echo 'In PowerShell: `Get-FileHash .\Mouthpiece-win64.zip`. Built by GitHub Actions from this tag; verify with `gh attestation verify Mouthpiece-win64.zip --repo ${{ github.repository }}`.'; } > body.md
+          gh release create "$GITHUB_REF_NAME" release/* --title "Mouthpiece ${GITHUB_REF_NAME#v}" --notes-file body.md
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: Mouthpiece-win64
+          path: release/*
